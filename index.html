@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Student Score (Foreach Version) - Presentation Mode</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            --bg-body: #0d1117;
+            --window-bg: #161b22;
+            --sidebar-bg: #0d1117;
+            --border: #30363d;
+            --accent: #58a6ff;
+            --text-main: #c9d1d9;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-code: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: var(--font-ui);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* --- MAC WINDOW CONTAINER --- */
+        .mac-window {
+            width: 95vw;
+            height: 90vh;
+            max-width: 1600px;
+            background-color: var(--window-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- TITLE BAR --- */
+        .title-bar {
+            height: 48px;
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+
+        .traffic-lights { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+
+        .title-text { font-size: 14px; color: #8b949e; font-weight: 500; font-family: var(--font-code); }
+        
+        .actions { display: flex; gap: 10px; }
+        .btn {
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-pdf { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+        .btn-run { background: #238636; color: white; border: 1px solid rgba(240,246,252,0.1); }
+
+        /* --- WORKSPACE --- */
+        .workspace { display: flex; flex: 1; overflow: hidden; }
+
+        /* --- EDITOR PANE (LEFT) --- */
+        .editor-pane {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+
+        .tabs-nav {
+            display: flex;
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border);
+            padding-top: 5px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: #8b949e;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #c9d1d9; }
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .tab-content { display: none; flex: 1; overflow: hidden; position: relative; }
+        .tab-content.active { display: flex; flex-direction: column; }
+
+        /* CODE VIEW */
+        .code-container { flex: 1; display: flex; overflow: auto; background: #0d1117; }
+        .line-numbers {
+            width: 40px; padding: 15px 5px; text-align: right;
+            color: #484f58; font-family: var(--font-code); font-size: 13px;
+            border-right: 1px solid var(--border);
+            user-select: none;
+        }
+        .line-numbers span { display: block; line-height: 1.5; }
+        
+        pre { margin: 0; flex: 1; }
+        code {
+            font-family: var(--font-code) !important; 
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+            background: transparent !important;
+            padding: 15px !important;
+        }
+
+        /* EXPLANATION VIEW */
+        .explain-scroll { flex: 1; overflow-y: auto; padding: 30px; }
+        .explain-item {
+            margin-bottom: 30px;
+            border-left: 3px solid #30363d;
+            padding-left: 20px;
+        }
+        .explain-item:hover { border-left-color: var(--accent); }
+        
+        .code-snippet {
+            font-family: var(--font-code);
+            font-size: 12px;
+            color: #e6edf3;
+            background: #161b22;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .explanation { font-size: 14px; color: #8b949e; line-height: 1.6; }
+        .explanation strong { color: #d2a8ff; font-weight: 500; }
+        .badge {
+            display: inline-block; padding: 2px 6px; border-radius: 4px;
+            font-size: 10px; font-weight: bold; margin-bottom: 5px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .bg-blue { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+        .bg-green { background: rgba(59, 214, 113, 0.15); color: #3fb950; }
+
+        /* --- TERMINAL PANE (RIGHT) --- */
+        .terminal-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+            font-family: var(--font-code);
+        }
+
+        .term-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex; justify-content: space-between;
+        }
+
+        .term-output {
+            flex: 1; padding: 20px; overflow-y: auto;
+            font-size: 13px; color: #c9d1d9;
+        }
+        
+        .log-line { min-height: 20px; margin-bottom: 4px; white-space: pre-wrap; }
+        .c-cyan { color: #79c0ff; font-weight: bold; }
+        .c-green { color: #56d364; }
+        .c-yellow { color: #e3b341; }
+        .c-red { color: #ffa198; }
+        .c-gray { color: #8b949e; }
+
+        .input-area {
+            display: none; padding: 15px; border-top: 1px solid var(--border);
+            background: #161b22; align-items: center;
+        }
+        .prompt { color: #56d364; margin-right: 10px; font-weight: bold; }
+        #term-input {
+            flex: 1; background: transparent; border: none;
+            color: white; font-family: var(--font-code); font-size: 13px; outline: none;
+        }
+
+        /* HIDDEN PDF CONTAINER */
+        #pdf-container { position: fixed; left: -9999px; }
+    </style>
+</head>
+<body>
+
+    <div class="mac-window">
+        <div class="title-bar">
+            <div class="traffic-lights">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="title-text">StudentScoreProgram.cs</div>
+            <div class="actions">
+                <button class="btn btn-pdf" onclick="exportPDF()">Export PDF</button>
+                <button class="btn btn-run" onclick="runProgram()">▶ Run Code</button>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="editor-pane">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" onclick="switchTab('full')">Full Code</button>
+                    <button class="tab-btn" onclick="switchTab('step1')">1. Setup</button>
+                    <button class="tab-btn" onclick="switchTab('step2')">2. Input</button>
+                    <button class="tab-btn" onclick="switchTab('step3')">3. Logic (Foreach)</button>
+                </div>
+
+                <div id="tab-full" class="tab-content active">
+                    <div class="code-container">
+                        <div class="line-numbers" id="line-numbers"></div>
+                        <pre><code class="language-csharp" id="code-content">using System;
+
+namespace StudentScoreProgram
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // var setup
+            int studentCount = 0;
+            int sum = 0;
+
+            // header stuff
+            try {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("========================================");
+                Console.WriteLine("  STUDENT SCORE CALCULATOR by Wiqnnc_   ");
+                Console.WriteLine("========================================");
+                Console.ResetColor();
+            }
+            catch { Console.ResetColor(); }
+
+            // Step 1: get the number of students
+            bool countValid = false;
+            while (!countValid)
+            {
+                Console.Write("Enter number of students: ");
+                string countInput = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(countInput)) {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Error: input cannot be empty.");
+                    Console.ResetColor();
+                    continue;
+                }
+
+                if (int.TryParse(countInput, out int result))
+                {
+                    if (result <= 0) {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Error: number must be more than 0.");
+                        Console.ResetColor();
+                    }
+                    else {
+                        studentCount = result;
+                        countValid = true;
+                    }
+                }
+                else {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Error: pls enter a valid number."); 
+                    Console.ResetColor();
+                }
+            }
+
+            // make the array
+            int[] score = new int[studentCount];
+
+            // Step 2: Input scores (keep 'for' loop here bc i need the index number)
+            for (int i = 0; i < score.Length; i++)
+            {
+                bool isValid = false;
+                while (!isValid)
+                {
+                    // showing i+1 so it looks normal to user
+                    Console.Write($"Enter the score for student number {i + 1}: ");
+                    string input = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(input))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Error: input cannot be empty.");
+                        Console.ResetColor();
+                        continue;
+                    }
+
+                    if (int.TryParse(input, out int result))
+                    {
+                        if (result < 0) {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("Error: score cannot be negative.");
+                            Console.ResetColor();
+                        }
+                        else if (result > 100) {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("Error: score cannot be more than 100.");
+                            Console.ResetColor();
+                        }
+                        else {
+                            score[i] = result;
+                            isValid = true;
+                        }
+                    }
+                    else {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Error: pls enter a valid number.");
+                        Console.ResetColor();
+                    }
+                }
+            }
+
+            if (score.Length == 0) return;
+
+            // set defaults for min/max
+            int max = score[0];
+            int min = score[0];
+
+            // ----------------------------------------------------
+            // Step 3: Calculation - CHANGED TO FOREACH LOOP
+            // ----------------------------------------------------
+            // using foreach here to read data one by one
+            
+            foreach (int s in score) 
+            {
+                // add to sum
+                try {
+                    checked { sum += s; }
+                }
+                catch {
+                    Console.WriteLine("Error: Overflow");
+                    sum = 0;
+                }
+
+                // check for max
+                if (s > max) max = s;
+                
+                // check for min
+                if (s < min) min = s;
+            }
+
+            // calc average
+            double avarage = (double)sum / score.Length;
+
+            // show results
+            Console.WriteLine("\n----------------------------------------");
+            Console.WriteLine($"Total Sum     = {sum}");
+            Console.WriteLine($"Average Score = {avarage:F2}");
+            
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Maximum Score = {max}");
+            
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Minimum Score = {min}");
+            
+            Console.ResetColor();
+            Console.WriteLine("----------------------------------------");
+
+            Console.WriteLine("\nPress Enter to exit...");
+            Console.ReadLine();
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <div id="tab-step1" class="tab-content">
+                    <div class="explain-scroll">
+                        <div class="explain-item">
+                            <span class="badge bg-blue">Variables</span>
+                            <div class="code-snippet">int studentCount = 0;<br>int sum = 0;</div>
+                            <div class="explanation">ประกาศตัวแปร <strong>sum</strong> ไว้เก็บผลรวม โดยเริ่มค่าที่ 0 ก่อนครับ เดี๋ยวเราจะเอามาบวกเพิ่มตอนใช้ Loop</div>
+                        </div>
+                        <div class="explain-item">
+                            <span class="badge bg-green">Styling</span>
+                            <div class="code-snippet">Console.ForegroundColor = ConsoleColor.Cyan;</div>
+                            <div class="explanation">เปลี่ยนสีตัวอักษรเป็น <strong>Cyan (สีฟ้า)</strong> เพื่อความสวยงาม และต้องใช้ <code>try-catch</code> กันไว้เผื่อบางเครื่องไม่รองรับคำสั่งเปลี่ยนสีครับ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-step2" class="tab-content">
+                    <div class="explain-scroll">
+                        <div class="explain-item">
+                            <span class="badge bg-blue">Input Validation</span>
+                            <div class="code-snippet">while (!countValid) { ... }</div>
+                            <div class="explanation">ใช้ <strong>While Loop</strong> วนถาม user ไปเรื่อยๆ จนกว่าจะใส่เลขที่ถูกต้อง (Valid) ถ้าใส่ตัวอักษรมา หรือใส่ 0 โปรแกรมจะแจ้ง Error แล้ววนถามใหม่</div>
+                        </div>
+                        <div class="explain-item">
+                            <span class="badge bg-blue">Array Creation</span>
+                            <div class="code-snippet">int[] score = new int[studentCount];</div>
+                            <div class="explanation">สร้าง <strong>Array</strong> ขนาดเท่ากับจำนวนนักเรียนที่รับมา เพื่อเตรียมช่องว่างไว้เก็บคะแนนของทุกคน</div>
+                        </div>
+                        <div class="explain-item">
+                            <span class="badge bg-green">Why For Loop?</span>
+                            <div class="code-snippet">for (int i = 0; i < score.Length; i++)</div>
+                            <div class="explanation">ตรงนี้ยังใช้ <strong>For Loop</strong> แบบปกติ เพราะเราต้องการตัวแปร <code>i</code> เอาไปแสดงผลว่า "Student Number 1, 2, 3..." ให้ user เห็นครับ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-step3" class="tab-content">
+                    <div class="explain-scroll">
+                        <div class="explain-item">
+                            <span class="badge bg-blue">Foreach Loop</span>
+                            <div class="code-snippet">foreach (int s in score)</div>
+                            <div class="explanation"><strong>*ไฮไลท์ของงานนี้*</strong> เราเปลี่ยนมาใช้ <code>foreach</code> เพื่อดึงคะแนนทีละตัว (ตั้งชื่อว่า <code>s</code>) ออกมาจาก Array ครับ วิธีนี้เขียนสั้นกว่าและอ่านง่ายกว่า for loop แบบเดิม</div>
+                        </div>
+                        <div class="explain-item">
+                            <span class="badge bg-green">Logic</span>
+                            <div class="code-snippet">sum += s;</div>
+                            <div class="explanation">เอาคะแนน <code>s</code> ที่ดึงมาได้ ไปบวกเพิ่มใน <code>sum</code> ทันที และเอาไปเทียบหา Min/Max ในรอบเดียวกันเลย</div>
+                        </div>
+                        <div class="explain-item">
+                            <span class="badge bg-green">Average</span>
+                            <div class="code-snippet">double avarage = (double)sum / score.Length;</div>
+                            <div class="explanation">ตอนหาค่าเฉลี่ย ต้องแปลง sum เป็น <strong>double</strong> (ทศนิยม) ก่อนหาร ไม่งั้นผลลัพธ์จะโดนปัดเศษทิ้งครับ</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="terminal-pane">
+                <div class="term-header">
+                    <span>Debug Console</span>
+                    <span id="status" style="color: #666">Ready</span>
+                </div>
+                <div class="term-output" id="output">
+                    <div class="log-line c-gray">// Click 'Run Code' to start...</div>
+                </div>
+                <div class="input-area" id="input-container">
+                    <span class="prompt">➜</span>
+                    <input type="text" id="term-input" autocomplete="off" spellcheck="false">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdf-container" style="padding: 40px; font-family: monospace; background: white; color: black;">
+        <h2 style="border-bottom: 2px solid black; padding-bottom: 10px;">StudentScoreProgram.cs</h2>
+        <pre><code class="csharp" id="pdf-code-content"></code></pre>
+    </div>
+
+    <script>
+        // --- SYNTAX HIGHLIGHTING & LINE NUMBERS ---
+        const codeBlock = document.getElementById('code-content');
+        const rawCode = codeBlock.textContent;
+        hljs.highlightElement(codeBlock);
+
+        // Add line numbers
+        const lineNumContainer = document.getElementById('line-numbers');
+        const lines = rawCode.split('\n').length;
+        for (let i = 1; i <= lines; i++) {
+            const span = document.createElement('span');
+            span.textContent = i;
+            lineNumContainer.appendChild(span);
+        }
+
+        // --- TAB SWITCHING ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // --- TERMINAL SIMULATION LOGIC ---
+        const outputDiv = document.getElementById('output');
+        const inputContainer = document.getElementById('input-container');
+        const inputField = document.getElementById('term-input');
+        const statusLabel = document.getElementById('status');
+        
+        let inputResolver = null;
+
+        function print(text, colorClass = '') {
+            const div = document.createElement('div');
+            div.className = `log-line ${colorClass}`;
+            div.textContent = text;
+            outputDiv.appendChild(div);
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+
+        async function readLine() {
+            inputContainer.style.display = 'flex';
+            inputField.value = '';
+            inputField.focus();
+            return new Promise(resolve => { inputResolver = resolve; });
+        }
+
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = inputField.value;
+                inputContainer.style.display = 'none';
+                print(val, 'c-gray'); // echo input
+                if (inputResolver) inputResolver(val);
+            }
+        });
+
+        // --- THE ACTUAL PROGRAM LOGIC (JS Simulation of C#) ---
+        async function runProgram() {
+            // Reset Terminal
+            outputDiv.innerHTML = '';
+            statusLabel.textContent = "Running...";
+            statusLabel.style.color = "#56d364";
+            
+            // Variables
+            let studentCount = 0;
+            let sum = 0;
+
+            // Header
+            print("========================================", "c-cyan");
+            print("  STUDENT SCORE CALCULATOR by Wiqnnc_   ", "c-cyan");
+            print("========================================", "c-cyan");
+
+            // Input: Student Count
+            let countValid = false;
+            while (!countValid) {
+                print("Enter number of students: ");
+                let countInput = await readLine();
+
+                if (!countInput || countInput.trim() === "") {
+                    print("Error: input cannot be empty.", "c-red");
+                    continue;
+                }
+
+                let result = Number(countInput);
+                if (Number.isInteger(result)) {
+                    if (result <= 0) {
+                        print("Error: number must be more than 0.", "c-red");
+                    } else {
+                        studentCount = result;
+                        countValid = true;
+                    }
+                } else {
+                    print("Error: pls enter a valid number.", "c-red");
+                }
+            }
+
+            let score = [];
+
+            // Input: Scores
+            for (let i = 0; i < studentCount; i++) {
+                let isValid = false;
+                while (!isValid) {
+                    print(`Enter the score for student number ${i + 1}: `);
+                    let input = await readLine();
+
+                    if (!input || input.trim() === "") {
+                        print("Error: input cannot be empty.", "c-red");
+                        continue;
+                    }
+
+                    let result = Number(input);
+                    if (!isNaN(result)) {
+                        if (result < 0) {
+                            print("Error: score cannot be negative.", "c-red");
+                        } else if (result > 100) {
+                            print("Error: score cannot be more than 100.", "c-red");
+                        } else {
+                            score[i] = result;
+                            isValid = true;
+                        }
+                    } else {
+                        print("Error: pls enter a valid number.", "c-red");
+                    }
+                }
+            }
+
+            if (score.length === 0) return;
+
+            // Logic: Min, Max, Sum (Using for..of to simulate foreach)
+            let max = score[0];
+            let min = score[0];
+
+            for (let s of score) {
+                sum += s;
+                if (s > max) max = s;
+                if (s < min) min = s;
+            }
+
+            let average = sum / score.length;
+
+            // Output
+            print("\n----------------------------------------");
+            print(`Total Sum     = ${sum}`);
+            print(`Average Score = ${average.toFixed(2)}`);
+            print(`Maximum Score = ${max}`, "c-green");
+            print(`Minimum Score = ${min}`, "c-yellow");
+            print("----------------------------------------");
+            print("\nPress Enter to exit...");
+            
+            await readLine();
+            statusLabel.textContent = "Finished";
+            statusLabel.style.color = "#8b949e";
+            print("[Program Finished]", "c-gray");
+        }
+
+        // --- PDF EXPORT ---
+        function exportPDF() {
+            const pdfCode = document.getElementById('pdf-code-content');
+            pdfCode.textContent = rawCode; // Load code
+            hljs.highlightElement(pdfCode); // Highlight for PDF
+
+            const element = document.getElementById('pdf-container');
+            const opt = {
+                margin: 0.5,
+                filename: 'StudentScore_Code.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
